@@ -1,0 +1,12 @@
+## Interface: 120007
+## Title: CombatState
+## Notes: Shows basic combat state changes.
+## Author: vikarious
+## Version: 0.1.0
+## SavedVariables: CombatStateDB
+
+Localization.lua
+Database.lua
+Alert.lua
+Config.lua
+Core.lua
