@@ -1,6 +1,6 @@
-local _, CombatState = ...
+local _, CombatCue = ...
 
-CombatState.defaults = {
+CombatCue.defaults = {
     fontSize = 32,
     x = 0,
     y = 180,
@@ -8,6 +8,11 @@ CombatState.defaults = {
     leaveCombatMessage = "--combat--",
     enterCombatColor = { r = 1, g = 0.2, b = 0.2, a = 1 },
     leaveCombatColor = { r = 0.2, g = 1, b = 0.2, a = 1 },
+    animationEnabled = true,
+    animationStyle = "fade",
+    displayDuration = 2,
+    animationDuration = 0.3,
+    animationScale = 1.2,
 }
 
 local function CopyDefaultValue(value)
@@ -18,25 +23,33 @@ local function CopyDefaultValue(value)
     local copy = {}
 
     for key, nestedValue in pairs(value) do
-        copy[key] = nestedValue
+        copy[key] = CopyDefaultValue(nestedValue)
     end
 
     return copy
 end
 
-function CombatState:EnsureDB()
-    CombatStateDB = CombatStateDB or {}
+local function MigrateLegacyDB()
+    if CombatCueDB == nil and type(CombatStateDB) == "table" then
+        CombatCueDB = CopyDefaultValue(CombatStateDB)
+    end
+end
+
+function CombatCue:EnsureDB()
+    MigrateLegacyDB()
+
+    CombatCueDB = CombatCueDB or {}
 
     for key, value in pairs(self.defaults) do
-        if CombatStateDB[key] == nil then
-            CombatStateDB[key] = CopyDefaultValue(value)
+        if CombatCueDB[key] == nil then
+            CombatCueDB[key] = CopyDefaultValue(value)
         elseif type(value) == "table" then
-            if type(CombatStateDB[key]) ~= "table" then
-                CombatStateDB[key] = CopyDefaultValue(value)
+            if type(CombatCueDB[key]) ~= "table" then
+                CombatCueDB[key] = CopyDefaultValue(value)
             else
                 for nestedKey, nestedValue in pairs(value) do
-                    if CombatStateDB[key][nestedKey] == nil then
-                        CombatStateDB[key][nestedKey] = nestedValue
+                    if CombatCueDB[key][nestedKey] == nil then
+                        CombatCueDB[key][nestedKey] = nestedValue
                     end
                 end
             end
@@ -44,24 +57,29 @@ function CombatState:EnsureDB()
     end
 end
 
-function CombatState:ResetDB()
+function CombatCue:ResetDB()
     self:EnsureDB()
 
-    CombatStateDB.fontSize = self.defaults.fontSize
-    CombatStateDB.x = self.defaults.x
-    CombatStateDB.y = self.defaults.y
-    CombatStateDB.enterCombatMessage = self.defaults.enterCombatMessage
-    CombatStateDB.leaveCombatMessage = self.defaults.leaveCombatMessage
-    CombatStateDB.enterCombatColor = CopyDefaultValue(self.defaults.enterCombatColor)
-    CombatStateDB.leaveCombatColor = CopyDefaultValue(self.defaults.leaveCombatColor)
+    CombatCueDB.fontSize = self.defaults.fontSize
+    CombatCueDB.x = self.defaults.x
+    CombatCueDB.y = self.defaults.y
+    CombatCueDB.enterCombatMessage = self.defaults.enterCombatMessage
+    CombatCueDB.leaveCombatMessage = self.defaults.leaveCombatMessage
+    CombatCueDB.enterCombatColor = CopyDefaultValue(self.defaults.enterCombatColor)
+    CombatCueDB.leaveCombatColor = CopyDefaultValue(self.defaults.leaveCombatColor)
+    CombatCueDB.animationEnabled = self.defaults.animationEnabled
+    CombatCueDB.animationStyle = self.defaults.animationStyle
+    CombatCueDB.displayDuration = self.defaults.displayDuration
+    CombatCueDB.animationDuration = self.defaults.animationDuration
+    CombatCueDB.animationScale = self.defaults.animationScale
 end
 
-function CombatState:GetCombatColor(messageType)
+function CombatCue:GetCombatColor(messageType)
     self:EnsureDB()
 
     if messageType == "leave" then
-        return CombatStateDB.leaveCombatColor
+        return CombatCueDB.leaveCombatColor
     end
 
-    return CombatStateDB.enterCombatColor
+    return CombatCueDB.enterCombatColor
 end

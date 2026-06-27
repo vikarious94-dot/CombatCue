@@ -1,14 +1,27 @@
-local _, CombatState = ...
+local _, CombatCue = ...
 
-CombatState.translations = {
+CombatCue.translations = {
     enUS = {
-        loaded = "loaded. Type /combatstate to configure.",
-        title = "CombatState",
+        loaded = "loaded. Type /combatcue to configure.",
+        title = "CombatCue",
+        tabMessages = "Messages",
+        tabAppearance = "Appearance",
+        tabAnimation = "Animation",
+        tabPosition = "Position",
         fontSize = "Font size",
         enterCombatMessage = "Enter combat message",
         leaveCombatMessage = "Leave combat message",
         enterCombatColor = "Enter color",
         leaveCombatColor = "Leave color",
+        animation = "Animation",
+        animationEnabled = "Enable animation",
+        animationStyle = "Style",
+        animationStyleFade = "Fade",
+        animationStyleScale = "Scale",
+        animationStyleFlash = "Flash",
+        displayDuration = "Display duration",
+        animationDuration = "Effect duration",
+        animationScale = "Scale intensity",
         positionX = "Position X",
         positionY = "Position Y",
         moveHint = "Move the preview text on screen to choose its position.",
@@ -18,13 +31,26 @@ CombatState.translations = {
         close = "Close",
     },
     frFR = {
-        loaded = "charge. Tape /combatstate pour configurer.",
-        title = "CombatState",
+        loaded = "charge. Tape /combatcue pour configurer.",
+        title = "CombatCue",
+        tabMessages = "Messages",
+        tabAppearance = "Apparence",
+        tabAnimation = "Animation",
+        tabPosition = "Position",
         fontSize = "Taille de police",
         enterCombatMessage = "Message entree combat",
         leaveCombatMessage = "Message sortie combat",
         enterCombatColor = "Couleur entree",
         leaveCombatColor = "Couleur sortie",
+        animation = "Animation",
+        animationEnabled = "Activer animation",
+        animationStyle = "Style",
+        animationStyleFade = "Fondu",
+        animationStyleScale = "Zoom",
+        animationStyleFlash = "Flash",
+        displayDuration = "Duree affichage",
+        animationDuration = "Duree effet",
+        animationScale = "Intensite zoom",
         positionX = "Position X",
         positionY = "Position Y",
         moveHint = "Deplace le texte de preview a l'ecran pour choisir sa position.",
@@ -35,7 +61,7 @@ CombatState.translations = {
     },
 }
 
-CombatState.L = setmetatable(
-    CombatState.translations[GetLocale()] or CombatState.translations.enUS,
-    { __index = CombatState.translations.enUS }
+CombatCue.L = setmetatable(
+    CombatCue.translations[GetLocale()] or CombatCue.translations.enUS,
+    { __index = CombatCue.translations.enUS }
 )
