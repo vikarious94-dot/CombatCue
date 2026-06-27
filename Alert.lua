@@ -49,11 +49,11 @@ function CombatState:SetConfigMode(enabled)
     end
 end
 
-function CombatState:ShowAlert(message, red, green, blue, keepVisible)
+function CombatState:ShowAlert(message, red, green, blue, alpha, keepVisible)
     hideToken = hideToken + 1
 
     alertText:SetText(message)
-    alertText:SetTextColor(red, green, blue, 1)
+    alertText:SetTextColor(red, green, blue, alpha or 1)
     alertFrame:Show()
 
     if not keepVisible then
@@ -68,7 +68,19 @@ function CombatState:ShowAlert(message, red, green, blue, keepVisible)
 end
 
 function CombatState:UpdatePreview()
-    self:ShowAlert("++combat++", 1, 0.2, 0.2, true)
+    self:PreviewEnterCombat()
+end
+
+function CombatState:PreviewEnterCombat()
+    local color = self:GetCombatColor("enter")
+
+    self:ShowAlert(CombatStateDB.enterCombatMessage, color.r, color.g, color.b, color.a, true)
+end
+
+function CombatState:PreviewLeaveCombat()
+    local color = self:GetCombatColor("leave")
+
+    self:ShowAlert(CombatStateDB.leaveCombatMessage, color.r, color.g, color.b, color.a, true)
 end
 
 function CombatState:HideAlert()

@@ -30,10 +30,24 @@ Initial development version of CombatState.
 - Added a test button to preview the alert.
 - Added a reset button to restore default settings.
 - Added English and French menu localization.
+- Added addon icon assets in `Media/`.
+- Added `IconTexture` metadata in `CombatState.toc`.
+- Added the addon icon to the configuration window title bar.
+- Added Escape key support to close the configuration window.
+- Added configurable enter-combat and leave-combat alert messages.
+- Added separate preview buttons for enter-combat and leave-combat messages.
+- Added configurable text colors and alpha for enter-combat and leave-combat alerts.
+- Added reset buttons beside the alert color swatches to restore default alert colors.
 
 ### Changed
 
 - Updated the addon interface version to `120007`.
+- Replaced the single test button with dedicated combat-state preview buttons.
+- Improved configuration window spacing around the preview help text and buttons.
+- Restored default leave-combat alert color to green with 100% alpha.
+- Fixed color swatch rendering and color picker reset button placement.
+- Fixed color picker alpha initialization on modern Retail clients.
+- Removed the color picker reset hook because native picker callbacks can treat custom buttons as cancel actions.
 - Reorganized the addon into separate files:
   - `Localization.lua`
   - `Database.lua`

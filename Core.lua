@@ -15,9 +15,13 @@ local function OnEvent(_, event, addonName)
             Print(CombatState.L.loaded)
         end
     elseif event == "PLAYER_REGEN_DISABLED" then
-        CombatState:ShowAlert("++combat++", 1, 0.2, 0.2)
+        local color = CombatState:GetCombatColor("enter")
+
+        CombatState:ShowAlert(CombatStateDB.enterCombatMessage, color.r, color.g, color.b, color.a)
     elseif event == "PLAYER_REGEN_ENABLED" then
-        CombatState:ShowAlert("--combat--", 0.2, 1, 0.2)
+        local color = CombatState:GetCombatColor("leave")
+
+        CombatState:ShowAlert(CombatStateDB.leaveCombatMessage, color.r, color.g, color.b, color.a)
     end
 end
 

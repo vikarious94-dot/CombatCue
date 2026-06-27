@@ -3,6 +3,7 @@
 ## Notes: Shows basic combat state changes.
 ## Author: vikarious
 ## Version: 0.1.0
+## IconTexture: Interface\AddOns\CombatState\Media\Icon.tga
 ## SavedVariables: CombatStateDB
 
 Localization.lua
