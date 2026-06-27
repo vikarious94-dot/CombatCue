@@ -2,9 +2,10 @@
 ## Title: CombatCue
 ## Notes: Shows basic combat state changes.
 ## Author: vikarious
-## Version: 0.1.0
+## Version: 1.0.0
 ## IconTexture: Interface\AddOns\CombatCue\Media\Icon.tga
-## SavedVariables: CombatCueDB, CombatStateDB
+## SavedVariables: CombatCueDB
+## X-Curse-Project-ID: 1590089
 
 Localization.lua
 Database.lua

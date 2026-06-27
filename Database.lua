@@ -29,15 +29,7 @@ local function CopyDefaultValue(value)
     return copy
 end
 
-local function MigrateLegacyDB()
-    if CombatCueDB == nil and type(CombatStateDB) == "table" then
-        CombatCueDB = CopyDefaultValue(CombatStateDB)
-    end
-end
-
 function CombatCue:EnsureDB()
-    MigrateLegacyDB()
-
     CombatCueDB = CombatCueDB or {}
 
     for key, value in pairs(self.defaults) do

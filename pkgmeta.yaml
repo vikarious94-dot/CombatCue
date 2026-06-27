@@ -1,0 +1,9 @@
+package-as: CombatCue
+enable-nolib-creation: no
+manual-changelog: CHANGELOG.md
+changelog-title: CombatCue
+
+ignore:
+  - .gitignore
+  - README.md
+  - 'Media/screenshots CombatCue'
