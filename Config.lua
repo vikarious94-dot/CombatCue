@@ -91,7 +91,7 @@ end
 
 local function CreateFontSizeSlider(parent, relativeTo)
     fontSizeSlider = CreateFrame("Slider", "CombatCueFontSizeSlider", parent, "OptionsSliderTemplate")
-    fontSizeSlider:SetSize(220, 20)
+    fontSizeSlider:SetSize(300, 20)
     fontSizeSlider:SetPoint("TOPLEFT", relativeTo, "BOTTOMLEFT", 0, -18)
     fontSizeSlider:SetMinMaxValues(12, 96)
     fontSizeSlider:SetValueStep(1)
@@ -108,7 +108,7 @@ end
 
 local function CreatePositionSlider(parent, name, label, input, point, relativeTo, relativePoint, x, y, axis)
     local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
-    slider:SetSize(220, 20)
+    slider:SetSize(300, 20)
     slider:SetPoint(point, relativeTo, relativePoint, x, y)
     slider:SetMinMaxValues(-1000, 1000)
     slider:SetValueStep(1)
@@ -133,7 +133,7 @@ end
 
 local function CreateDecimalSlider(parent, name, label, input, point, relativeTo, relativePoint, x, y, minValue, maxValue, step, onValueChanged)
     local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
-    slider:SetSize(220, 20)
+    slider:SetSize(300, 20)
     slider:SetPoint(point, relativeTo, relativePoint, x, y)
     slider:SetMinMaxValues(minValue, maxValue)
     slider:SetValueStep(step)
@@ -164,7 +164,7 @@ function CombatCue:CreateConfigFrame()
     local L = self.L
 
     configFrame = CreateFrame("Frame", "CombatCueConfigFrame", UIParent, "BasicFrameTemplateWithInset")
-    configFrame:SetSize(430, 520)
+    configFrame:SetSize(610, 610)
     configFrame:SetPoint("CENTER")
     configFrame:SetFrameStrata("FULLSCREEN_DIALOG")
     configFrame:SetFrameLevel(100)
@@ -187,15 +187,57 @@ function CombatCue:CreateConfigFrame()
     titleIcon:SetTexture("Interface\\AddOns\\CombatCue\\Media\\Icon.tga")
 
     local title = configFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    title:SetPoint("LEFT", titleIcon, "RIGHT", 6, 0)
+    title:SetPoint("CENTER", configFrame.TitleBg, "CENTER", 0, 0)
     title:SetText(L.title)
+
+    local contentPanel = CreateFrame("Frame", nil, configFrame, "BackdropTemplate")
+    contentPanel:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 18, -64)
+    contentPanel:SetPoint("BOTTOMRIGHT", configFrame, "BOTTOMRIGHT", -18, 70)
+    contentPanel:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 14,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    contentPanel:SetBackdropColor(0.06, 0.055, 0.045, 0.78)
+    contentPanel:SetBackdropBorderColor(0.55, 0.55, 0.5, 0.9)
+
+    local header = CreateFrame("Frame", nil, contentPanel, "BackdropTemplate")
+    header:SetPoint("TOPLEFT", contentPanel, "TOPLEFT", 12, -10)
+    header:SetPoint("TOPRIGHT", contentPanel, "TOPRIGHT", -12, -10)
+    header:SetHeight(72)
+    header:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 12,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    header:SetBackdropColor(0.02, 0.02, 0.018, 0.88)
+    header:SetBackdropBorderColor(0.45, 0.45, 0.42, 0.85)
+
+    local headerIcon = header:CreateTexture(nil, "ARTWORK")
+    headerIcon:SetSize(48, 48)
+    headerIcon:SetPoint("LEFT", header, "LEFT", 16, 0)
+    headerIcon:SetTexture("Interface\\AddOns\\CombatCue\\Media\\Icon.tga")
+
+    local headerTitle = header:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    headerTitle:SetPoint("TOPLEFT", headerIcon, "TOPRIGHT", 14, -8)
+    headerTitle:SetText(L.title)
+
+    local headerSubtitle = header:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    headerSubtitle:SetPoint("TOPLEFT", headerTitle, "BOTTOMLEFT", 0, -8)
+    headerSubtitle:SetText(L.subtitle)
 
     local function CreateTab(name, label, relativeTo)
         local point = relativeTo and "LEFT" or "TOPLEFT"
         local relativePoint = relativeTo and "RIGHT" or "TOPLEFT"
-        local x = relativeTo and 4 or 18
-        local y = relativeTo and 0 or -40
-        local button = self:CreateButton(configFrame, label, 94, 24, point, relativeTo or configFrame, relativePoint, x, y)
+        local x = relativeTo and 4 or 22
+        local y = relativeTo and 0 or -36
+        local button = self:CreateButton(configFrame, label, 132, 24, point, relativeTo or configFrame, relativePoint, x, y)
 
         button:SetScript("OnClick", function()
             ShowConfigTab(name)
@@ -203,9 +245,9 @@ function CombatCue:CreateConfigFrame()
 
         tabButtons[name] = button
 
-        local frame = CreateFrame("Frame", nil, configFrame)
-        frame:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 18, -82)
-        frame:SetPoint("BOTTOMRIGHT", configFrame, "BOTTOMRIGHT", -18, 82)
+        local frame = CreateFrame("Frame", nil, contentPanel)
+        frame:SetPoint("TOPLEFT", contentPanel, "TOPLEFT", 24, -104)
+        frame:SetPoint("BOTTOMRIGHT", contentPanel, "BOTTOMRIGHT", -24, 18)
         frame:Hide()
         tabFrames[name] = frame
 
@@ -221,7 +263,7 @@ function CombatCue:CreateConfigFrame()
     enterCombatMessageLabel:SetPoint("TOPLEFT", 0, 0)
     enterCombatMessageLabel:SetText(L.enterCombatMessage)
 
-    enterCombatMessageInput = self:CreateTextInput(messagesTab, 360, function()
+    enterCombatMessageInput = self:CreateTextInput(messagesTab, 520, function()
         return CombatCueDB.enterCombatMessage
     end, function(value)
         CombatCue:SetCombatMessage("enter", value)
@@ -232,7 +274,7 @@ function CombatCue:CreateConfigFrame()
     leaveCombatMessageLabel:SetPoint("TOPLEFT", enterCombatMessageInput, "BOTTOMLEFT", 0, -18)
     leaveCombatMessageLabel:SetText(L.leaveCombatMessage)
 
-    leaveCombatMessageInput = self:CreateTextInput(messagesTab, 360, function()
+    leaveCombatMessageInput = self:CreateTextInput(messagesTab, 520, function()
         return CombatCueDB.leaveCombatMessage
     end, function(value)
         CombatCue:SetCombatMessage("leave", value)

@@ -1,4 +1,9 @@
 # Changelog
+## Unreleased
+
+### Changed
+- Refreshed the configuration window with a larger panel, header banner, and wider tab layout.
+
 ## [1.0.0](https://github.com/vikarious94-dot/CombatCue/tree/v1.0.0) - 2026-06-27
 
 ### Added
