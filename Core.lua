@@ -11,6 +11,7 @@ local function OnEvent(_, event, addonName)
     if event == "ADDON_LOADED" then
         if addonName == ADDON_NAME then
             CombatCue:EnsureDB()
+            CombatCue:CreateConfigFrame()
             CombatCue:ApplySettings()
             Print(CombatCue.L.loaded)
         end

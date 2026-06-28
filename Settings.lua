@@ -45,12 +45,21 @@ function CombatCue:SetAnimationStyle(style)
     self:ApplySettings()
 end
 
-function CombatCue:CycleAnimationStyle()
+function CombatCue:CycleAnimationStyle(direction)
     self:EnsureDB()
+    direction = direction or 1
 
     for index, style in ipairs(ANIMATION_STYLES) do
         if style == CombatCueDB.animationStyle then
-            self:SetAnimationStyle(ANIMATION_STYLES[index + 1] or ANIMATION_STYLES[1])
+            local nextIndex = index + direction
+
+            if nextIndex > #ANIMATION_STYLES then
+                nextIndex = 1
+            elseif nextIndex < 1 then
+                nextIndex = #ANIMATION_STYLES
+            end
+
+            self:SetAnimationStyle(ANIMATION_STYLES[nextIndex])
             return
         end
     end

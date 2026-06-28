@@ -1,4 +1,19 @@
 # Changelog
+## Unreleased
+
+### Changed
+- Moved the configuration UI into the native WoW Retail AddOns settings panel.
+- Replaced the custom skinned configuration window with native controls and a two-column settings layout.
+- Adjusted the settings panel to a narrower single-column layout for the native options view.
+- Added an internal scroll frame to prevent settings controls from overflowing the options window.
+- Fixed settings input fields so their current values are visible on dark option backgrounds.
+- Added a preview placement mode that closes the options panel and lets the alert text be moved above the UI.
+- Replaced the animation style button with a previous/current/next selector.
+- Added subtle section bands and dividers to make settings groups easier to distinguish.
+- Reduced settings control widths to prevent section dividers and inputs from overflowing.
+- Increased vertical spacing between settings sections to prevent dividers from overlapping controls.
+- Anchored section dividers below the previous controls to prevent message fields from overlapping section headers.
+
 ## [1.0.2](https://github.com/vikarious94-dot/CombatCue/tree/v1.0.2) - 2026-06-28
 
 ### Added

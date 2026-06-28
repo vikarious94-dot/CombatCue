@@ -1,6 +1,7 @@
 local _, CombatCue = ...
 
 local configFrame
+local settingsCategory
 local fontSizeInput
 local fontSizeSlider
 local positionXInput
@@ -19,10 +20,7 @@ local animationScaleInput
 local animationScaleSlider
 local positionXSlider
 local positionYSlider
-local isRegisteredSpecialFrame = false
-local tabButtons = {}
-local tabFrames = {}
-local activeConfigTab = "messages"
+local isApplyingConfigSettings = false
 
 local function GetAnimationStyleText(style)
     local L = CombatCue.L
@@ -36,27 +34,156 @@ local function GetAnimationStyleText(style)
     return L.animationStyleFade
 end
 
-local function ShowConfigTab(tabName)
-    activeConfigTab = tabName
+local function StyleSectionTitle(parent, title)
+    local band = parent:CreateTexture(nil, "BACKGROUND")
+    band:SetPoint("TOPLEFT", title, "TOPLEFT", -4, 6)
+    band:SetPoint("RIGHT", parent, "RIGHT", -16, 0)
+    band:SetHeight(24)
+    band:SetColorTexture(0, 0, 0, 0.22)
 
-    for name, frame in pairs(tabFrames) do
-        if name == tabName then
-            frame:Show()
-        else
-            frame:Hide()
+    local line = parent:CreateTexture(nil, "ARTWORK")
+    line:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    line:SetPoint("RIGHT", parent, "RIGHT", -24, 0)
+    line:SetHeight(1)
+    line:SetColorTexture(1, 0.82, 0.18, 0.45)
+end
+
+local function CreateSectionTitle(parent, text, y)
+    local title = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, y)
+    title:SetText(text)
+
+    StyleSectionTitle(parent, title)
+
+    return title
+end
+
+local function CreateSectionTitleBelow(parent, text, relativeTo, y)
+    local title = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", relativeTo, "BOTTOMLEFT", 0, y)
+    title:SetText(text)
+
+    StyleSectionTitle(parent, title)
+
+    return title
+end
+
+local function CreateFieldLabel(parent, text, relativeTo, y)
+    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("TOPLEFT", relativeTo, "BOTTOMLEFT", 0, y)
+    label:SetText(text)
+
+    return label
+end
+
+local function CreateFontSizeSlider(parent, relativeTo)
+    fontSizeSlider = CreateFrame("Slider", "CombatCueFontSizeSlider", parent, "OptionsSliderTemplate")
+    fontSizeSlider:SetSize(260, 20)
+    fontSizeSlider:SetPoint("TOPLEFT", relativeTo, "BOTTOMLEFT", 0, -18)
+    fontSizeSlider:SetMinMaxValues(12, 96)
+    fontSizeSlider:SetValueStep(1)
+    fontSizeSlider:SetObeyStepOnDrag(true)
+
+    _G[fontSizeSlider:GetName() .. "Low"]:SetText("12")
+    _G[fontSizeSlider:GetName() .. "High"]:SetText("96")
+    _G[fontSizeSlider:GetName() .. "Text"]:SetText("")
+
+    fontSizeSlider:SetScript("OnValueChanged", function(_, value)
+        if isApplyingConfigSettings then
+            return
         end
+
+        CombatCue:SetFontSize(math.floor(value + 0.5))
+    end)
+end
+
+local function CreatePositionSlider(parent, name, label, input, point, relativeTo, relativePoint, x, y, axis)
+    local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
+    slider:SetSize(260, 20)
+    slider:SetPoint(point, relativeTo, relativePoint, x, y)
+    slider:SetMinMaxValues(-1000, 1000)
+    slider:SetValueStep(1)
+    slider:SetObeyStepOnDrag(true)
+
+    _G[slider:GetName() .. "Low"]:SetText("-1000")
+    _G[slider:GetName() .. "High"]:SetText("1000")
+    _G[slider:GetName() .. "Text"]:SetText("")
+
+    local labelText = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    labelText:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
+    labelText:SetText(label)
+
+    input:SetPoint("LEFT", labelText, "RIGHT", 18, 0)
+
+    slider:SetScript("OnValueChanged", function(_, value)
+        if isApplyingConfigSettings then
+            return
+        end
+
+        CombatCue:SetPosition(axis, math.floor(value + 0.5))
+    end)
+
+    return slider
+end
+
+local function CreateDecimalSlider(parent, name, label, input, point, relativeTo, relativePoint, x, y, minValue, maxValue, step, onValueChanged)
+    local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
+    slider:SetSize(260, 20)
+    slider:SetPoint(point, relativeTo, relativePoint, x, y)
+    slider:SetMinMaxValues(minValue, maxValue)
+    slider:SetValueStep(step)
+    slider:SetObeyStepOnDrag(true)
+
+    _G[slider:GetName() .. "Low"]:SetText(tostring(minValue))
+    _G[slider:GetName() .. "High"]:SetText(tostring(maxValue))
+    _G[slider:GetName() .. "Text"]:SetText("")
+
+    local labelText = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    labelText:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
+    labelText:SetText(label)
+
+    input:SetPoint("LEFT", labelText, "RIGHT", 18, 0)
+
+    slider:SetScript("OnValueChanged", function(_, value)
+        if isApplyingConfigSettings then
+            return
+        end
+
+        onValueChanged(math.floor((value / step) + 0.5) * step)
+    end)
+
+    return slider
+end
+
+local function OpenSettingsCategory()
+    if not settingsCategory or not Settings or not Settings.OpenToCategory then
+        return false
     end
 
-    for name, button in pairs(tabButtons) do
-        if name == tabName then
-            button:SetButtonState("PUSHED", true)
+    local categoryID = settingsCategory.GetID and settingsCategory:GetID() or settingsCategory.ID
+
+    if not categoryID then
+        return false
+    end
+
+    Settings.OpenToCategory(categoryID)
+
+    return true
+end
+
+local function CloseSettingsPanel()
+    if SettingsPanel and SettingsPanel:IsShown() then
+        if HideUIPanel then
+            HideUIPanel(SettingsPanel)
         else
-            button:SetButtonState("NORMAL", false)
+            SettingsPanel:Hide()
         end
     end
 end
 
 function CombatCue:ApplyConfigSettings()
+    isApplyingConfigSettings = true
+
     self:SetInputValue(fontSizeInput, CombatCueDB.fontSize)
     self:SetInputValue(positionXInput, CombatCueDB.x)
     self:SetInputValue(positionYInput, CombatCueDB.y)
@@ -81,79 +208,14 @@ function CombatCue:ApplyConfigSettings()
     if animationStyleButton then
         animationStyleButton:SetText(GetAnimationStyleText(CombatCueDB.animationStyle))
     end
+
+    isApplyingConfigSettings = false
 end
 
 function CombatCue:ApplySettings()
     self:EnsureDB()
     self:ApplyAlertSettings()
     self:ApplyConfigSettings()
-end
-
-local function CreateFontSizeSlider(parent, relativeTo)
-    fontSizeSlider = CreateFrame("Slider", "CombatCueFontSizeSlider", parent, "OptionsSliderTemplate")
-    fontSizeSlider:SetSize(300, 20)
-    fontSizeSlider:SetPoint("TOPLEFT", relativeTo, "BOTTOMLEFT", 0, -18)
-    fontSizeSlider:SetMinMaxValues(12, 96)
-    fontSizeSlider:SetValueStep(1)
-    fontSizeSlider:SetObeyStepOnDrag(true)
-
-    _G[fontSizeSlider:GetName() .. "Low"]:SetText("12")
-    _G[fontSizeSlider:GetName() .. "High"]:SetText("96")
-    _G[fontSizeSlider:GetName() .. "Text"]:SetText("")
-
-    fontSizeSlider:SetScript("OnValueChanged", function(_, value)
-        CombatCue:SetFontSize(math.floor(value + 0.5))
-    end)
-end
-
-local function CreatePositionSlider(parent, name, label, input, point, relativeTo, relativePoint, x, y, axis)
-    local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
-    slider:SetSize(300, 20)
-    slider:SetPoint(point, relativeTo, relativePoint, x, y)
-    slider:SetMinMaxValues(-1000, 1000)
-    slider:SetValueStep(1)
-    slider:SetObeyStepOnDrag(true)
-
-    _G[slider:GetName() .. "Low"]:SetText("-1000")
-    _G[slider:GetName() .. "High"]:SetText("1000")
-    _G[slider:GetName() .. "Text"]:SetText("")
-
-    local labelText = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    labelText:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
-    labelText:SetText(label)
-
-    input:SetPoint("LEFT", labelText, "RIGHT", 18, 0)
-
-    slider:SetScript("OnValueChanged", function(_, value)
-        CombatCue:SetPosition(axis, math.floor(value + 0.5))
-    end)
-
-    return slider
-end
-
-local function CreateDecimalSlider(parent, name, label, input, point, relativeTo, relativePoint, x, y, minValue, maxValue, step, onValueChanged)
-    local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
-    slider:SetSize(300, 20)
-    slider:SetPoint(point, relativeTo, relativePoint, x, y)
-    slider:SetMinMaxValues(minValue, maxValue)
-    slider:SetValueStep(step)
-    slider:SetObeyStepOnDrag(true)
-
-    _G[slider:GetName() .. "Low"]:SetText(tostring(minValue))
-    _G[slider:GetName() .. "High"]:SetText(tostring(maxValue))
-    _G[slider:GetName() .. "Text"]:SetText("")
-
-    local labelText = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    labelText:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
-    labelText:SetText(label)
-
-    input:SetPoint("LEFT", labelText, "RIGHT", 18, 0)
-
-    slider:SetScript("OnValueChanged", function(_, value)
-        onValueChanged(math.floor((value / step) + 0.5) * step)
-    end)
-
-    return slider
 end
 
 function CombatCue:CreateConfigFrame()
@@ -163,191 +225,129 @@ function CombatCue:CreateConfigFrame()
 
     local L = self.L
 
-    configFrame = CreateFrame("Frame", "CombatCueConfigFrame", UIParent, "BasicFrameTemplateWithInset")
-    configFrame:SetSize(610, 610)
-    configFrame:SetPoint("CENTER")
-    configFrame:SetFrameStrata("FULLSCREEN_DIALOG")
-    configFrame:SetFrameLevel(100)
-    configFrame:SetToplevel(true)
-    configFrame:SetMovable(true)
-    configFrame:EnableMouse(true)
-    configFrame:RegisterForDrag("LeftButton")
-    configFrame:SetScript("OnDragStart", configFrame.StartMoving)
-    configFrame:SetScript("OnDragStop", configFrame.StopMovingOrSizing)
-    configFrame:Hide()
+    configFrame = CreateFrame("Frame", "CombatCueSettingsPanel")
+    configFrame:SetSize(560, 620)
 
-    if not isRegisteredSpecialFrame then
-        table.insert(UISpecialFrames, configFrame:GetName())
-        isRegisteredSpecialFrame = true
-    end
+    local scrollFrame = CreateFrame("ScrollFrame", "CombatCueSettingsScrollFrame", configFrame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 0, -4)
+    scrollFrame:SetPoint("BOTTOMRIGHT", configFrame, "BOTTOMRIGHT", -28, 4)
 
-    local titleIcon = configFrame:CreateTexture(nil, "OVERLAY")
-    titleIcon:SetSize(18, 18)
-    titleIcon:SetPoint("LEFT", configFrame.TitleBg, "LEFT", 6, 0)
-    titleIcon:SetTexture("Interface\\AddOns\\CombatCue\\Media\\Icon.tga")
+    local contentFrame = CreateFrame("Frame", "CombatCueSettingsContent", scrollFrame)
+    contentFrame:SetSize(430, 1080)
+    scrollFrame:SetScrollChild(contentFrame)
 
-    local title = configFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    title:SetPoint("CENTER", configFrame.TitleBg, "CENTER", 0, 0)
+    local icon = contentFrame:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(36, 36)
+    icon:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 20, -18)
+    icon:SetTexture("Interface\\AddOns\\CombatCue\\Media\\Icon.tga")
+
+    local title = contentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 12, -2)
     title:SetText(L.title)
 
-    local contentPanel = CreateFrame("Frame", nil, configFrame, "BackdropTemplate")
-    contentPanel:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 18, -64)
-    contentPanel:SetPoint("BOTTOMRIGHT", configFrame, "BOTTOMRIGHT", -18, 70)
-    contentPanel:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true,
-        tileSize = 16,
-        edgeSize = 14,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 },
-    })
-    contentPanel:SetBackdropColor(0.06, 0.055, 0.045, 0.78)
-    contentPanel:SetBackdropBorderColor(0.55, 0.55, 0.5, 0.9)
+    local subtitle = contentFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+    subtitle:SetText(L.subtitle)
 
-    local header = CreateFrame("Frame", nil, contentPanel, "BackdropTemplate")
-    header:SetPoint("TOPLEFT", contentPanel, "TOPLEFT", 12, -10)
-    header:SetPoint("TOPRIGHT", contentPanel, "TOPRIGHT", -12, -10)
-    header:SetHeight(72)
-    header:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true,
-        tileSize = 16,
-        edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-    })
-    header:SetBackdropColor(0.02, 0.02, 0.018, 0.88)
-    header:SetBackdropBorderColor(0.45, 0.45, 0.42, 0.85)
+    local messagesTitle = CreateSectionTitle(contentFrame, L.tabMessages, -76)
 
-    local headerIcon = header:CreateTexture(nil, "ARTWORK")
-    headerIcon:SetSize(48, 48)
-    headerIcon:SetPoint("LEFT", header, "LEFT", 16, 0)
-    headerIcon:SetTexture("Interface\\AddOns\\CombatCue\\Media\\Icon.tga")
-
-    local headerTitle = header:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    headerTitle:SetPoint("TOPLEFT", headerIcon, "TOPRIGHT", 14, -8)
-    headerTitle:SetText(L.title)
-
-    local headerSubtitle = header:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    headerSubtitle:SetPoint("TOPLEFT", headerTitle, "BOTTOMLEFT", 0, -8)
-    headerSubtitle:SetText(L.subtitle)
-
-    local function CreateTab(name, label, relativeTo)
-        local point = relativeTo and "LEFT" or "TOPLEFT"
-        local relativePoint = relativeTo and "RIGHT" or "TOPLEFT"
-        local x = relativeTo and 4 or 22
-        local y = relativeTo and 0 or -36
-        local button = self:CreateButton(configFrame, label, 132, 24, point, relativeTo or configFrame, relativePoint, x, y)
-
-        button:SetScript("OnClick", function()
-            ShowConfigTab(name)
-        end)
-
-        tabButtons[name] = button
-
-        local frame = CreateFrame("Frame", nil, contentPanel)
-        frame:SetPoint("TOPLEFT", contentPanel, "TOPLEFT", 24, -104)
-        frame:SetPoint("BOTTOMRIGHT", contentPanel, "BOTTOMRIGHT", -24, 18)
-        frame:Hide()
-        tabFrames[name] = frame
-
-        return button, frame
-    end
-
-    local messagesTabButton, messagesTab = CreateTab("messages", L.tabMessages)
-    local appearanceTabButton, appearanceTab = CreateTab("appearance", L.tabAppearance, messagesTabButton)
-    local animationTabButton, animationTab = CreateTab("animation", L.tabAnimation, appearanceTabButton)
-    local _, positionTab = CreateTab("position", L.tabPosition, animationTabButton)
-
-    local enterCombatMessageLabel = messagesTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    enterCombatMessageLabel:SetPoint("TOPLEFT", 0, 0)
-    enterCombatMessageLabel:SetText(L.enterCombatMessage)
-
-    enterCombatMessageInput = self:CreateTextInput(messagesTab, 520, function()
+    local enterCombatMessageLabel = CreateFieldLabel(contentFrame, L.enterCombatMessage, messagesTitle, -14)
+    enterCombatMessageInput = self:CreateTextInput(contentFrame, 320, function()
         return CombatCueDB.enterCombatMessage
     end, function(value)
         CombatCue:SetCombatMessage("enter", value)
     end)
     enterCombatMessageInput:SetPoint("TOPLEFT", enterCombatMessageLabel, "BOTTOMLEFT", 0, -6)
 
-    local leaveCombatMessageLabel = messagesTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    leaveCombatMessageLabel:SetPoint("TOPLEFT", enterCombatMessageInput, "BOTTOMLEFT", 0, -18)
-    leaveCombatMessageLabel:SetText(L.leaveCombatMessage)
-
-    leaveCombatMessageInput = self:CreateTextInput(messagesTab, 520, function()
+    local leaveCombatMessageLabel = CreateFieldLabel(contentFrame, L.leaveCombatMessage, enterCombatMessageInput, -16)
+    leaveCombatMessageInput = self:CreateTextInput(contentFrame, 320, function()
         return CombatCueDB.leaveCombatMessage
     end, function(value)
         CombatCue:SetCombatMessage("leave", value)
     end)
     leaveCombatMessageInput:SetPoint("TOPLEFT", leaveCombatMessageLabel, "BOTTOMLEFT", 0, -6)
 
-    local enterCombatColorLabel = appearanceTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    enterCombatColorLabel:SetPoint("TOPLEFT", 0, 0)
-    enterCombatColorLabel:SetWidth(100)
-    enterCombatColorLabel:SetJustifyH("LEFT")
-    enterCombatColorLabel:SetText(L.enterCombatColor)
+    local appearanceTitle = CreateSectionTitleBelow(contentFrame, L.tabAppearance, leaveCombatMessageInput, -44)
 
-    enterCombatColorSwatch = self:CreateColorSwatch(appearanceTab, function()
+    local enterCombatColorLabel = CreateFieldLabel(contentFrame, L.enterCombatColor, appearanceTitle, -14)
+    enterCombatColorLabel:SetWidth(82)
+    enterCombatColorLabel:SetJustifyH("LEFT")
+
+    enterCombatColorSwatch = self:CreateColorSwatch(contentFrame, function()
         CombatCue:OpenCombatColorPicker("enter")
     end)
     enterCombatColorSwatch:SetPoint("LEFT", enterCombatColorLabel, "RIGHT", 8, 0)
 
-    local resetEnterCombatColorButton = self:CreateButton(appearanceTab, L.reset, 72, 22, "LEFT", enterCombatColorSwatch, "RIGHT", 12, 0)
+    local resetEnterCombatColorButton = self:CreateButton(contentFrame, L.reset, 72, 22, "LEFT", enterCombatColorSwatch, "RIGHT", 16, 0)
     resetEnterCombatColorButton:SetScript("OnClick", function()
         CombatCue:ResetCombatColor("enter")
     end)
 
-    local leaveCombatColorLabel = appearanceTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    leaveCombatColorLabel:SetPoint("TOPLEFT", enterCombatColorLabel, "BOTTOMLEFT", 0, -8)
-    leaveCombatColorLabel:SetWidth(100)
+    local leaveCombatColorLabel = contentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    leaveCombatColorLabel:SetPoint("TOPLEFT", enterCombatColorLabel, "BOTTOMLEFT", 0, -12)
+    leaveCombatColorLabel:SetWidth(82)
     leaveCombatColorLabel:SetJustifyH("LEFT")
     leaveCombatColorLabel:SetText(L.leaveCombatColor)
 
-    leaveCombatColorSwatch = self:CreateColorSwatch(appearanceTab, function()
+    leaveCombatColorSwatch = self:CreateColorSwatch(contentFrame, function()
         CombatCue:OpenCombatColorPicker("leave")
     end)
-    leaveCombatColorSwatch:SetPoint("CENTER", enterCombatColorSwatch, "CENTER", 0, -30)
+    leaveCombatColorSwatch:SetPoint("CENTER", enterCombatColorSwatch, "CENTER", 0, -34)
 
-    local resetLeaveCombatColorButton = self:CreateButton(appearanceTab, L.reset, 72, 22, "CENTER", resetEnterCombatColorButton, "CENTER", 0, -30)
+    local resetLeaveCombatColorButton = self:CreateButton(contentFrame, L.reset, 72, 22, "CENTER", resetEnterCombatColorButton, "CENTER", 0, -34)
     resetLeaveCombatColorButton:SetScript("OnClick", function()
         CombatCue:ResetCombatColor("leave")
     end)
 
-    local sizeLabel = appearanceTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sizeLabel:SetPoint("TOPLEFT", leaveCombatColorLabel, "BOTTOMLEFT", 0, -42)
+    local sizeLabel = contentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    sizeLabel:SetPoint("TOPLEFT", leaveCombatColorLabel, "BOTTOMLEFT", 0, -26)
     sizeLabel:SetText(L.fontSize)
 
-    fontSizeInput = self:CreateNumberInput(appearanceTab, 54, function()
+    fontSizeInput = self:CreateNumberInput(contentFrame, 54, function()
         return CombatCueDB.fontSize
     end, function(value)
         CombatCue:SetFontSize(value)
     end)
     fontSizeInput:SetPoint("LEFT", sizeLabel, "RIGHT", 18, 0)
 
-    CreateFontSizeSlider(appearanceTab, sizeLabel)
+    CreateFontSizeSlider(contentFrame, sizeLabel)
 
-    animationEnabledCheckbox = self:CreateCheckbox(animationTab, L.animationEnabled, function(checked)
+    local animationTitle = CreateSectionTitleBelow(contentFrame, L.tabAnimation, fontSizeSlider, -54)
+
+    animationEnabledCheckbox = self:CreateCheckbox(contentFrame, L.animationEnabled, function(checked)
         CombatCue:SetAnimationEnabled(checked)
     end)
-    animationEnabledCheckbox:SetPoint("TOPLEFT", -4, 0)
+    animationEnabledCheckbox:SetPoint("TOPLEFT", animationTitle, "BOTTOMLEFT", -4, -12)
 
-    local animationStyleLabel = animationTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local animationStyleLabel = contentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     animationStyleLabel:SetPoint("TOPLEFT", animationEnabledCheckbox, "BOTTOMLEFT", 4, -14)
     animationStyleLabel:SetText(L.animationStyle)
 
-    animationStyleButton = self:CreateButton(animationTab, "", 96, 24, "LEFT", animationStyleLabel, "RIGHT", 18, 0)
+    local previousAnimationStyleButton = self:CreateButton(contentFrame, "<", 24, 24, "LEFT", animationStyleLabel, "RIGHT", 18, 0)
+    previousAnimationStyleButton:SetScript("OnClick", function()
+        CombatCue:CycleAnimationStyle(-1)
+        CombatCue:PreviewEnterCombat(true)
+    end)
+
+    animationStyleButton = self:CreateButton(contentFrame, "", 140, 24, "LEFT", previousAnimationStyleButton, "RIGHT", 6, 0)
     animationStyleButton:SetScript("OnClick", function()
         CombatCue:CycleAnimationStyle()
         CombatCue:PreviewEnterCombat(true)
     end)
 
-    displayDurationInput = self:CreateDecimalInput(animationTab, 54, function()
+    local nextAnimationStyleButton = self:CreateButton(contentFrame, ">", 24, 24, "LEFT", animationStyleButton, "RIGHT", 6, 0)
+    nextAnimationStyleButton:SetScript("OnClick", function()
+        CombatCue:CycleAnimationStyle(1)
+        CombatCue:PreviewEnterCombat(true)
+    end)
+
+    displayDurationInput = self:CreateDecimalInput(contentFrame, 54, function()
         return CombatCueDB.displayDuration
     end, function(value)
         CombatCue:SetDisplayDuration(value)
     end, 1)
     displayDurationSlider = CreateDecimalSlider(
-        animationTab,
+        contentFrame,
         "CombatCueDisplayDurationSlider",
         L.displayDuration,
         displayDurationInput,
@@ -364,13 +364,13 @@ function CombatCue:CreateConfigFrame()
         end
     )
 
-    animationDurationInput = self:CreateDecimalInput(animationTab, 54, function()
+    animationDurationInput = self:CreateDecimalInput(contentFrame, 54, function()
         return CombatCueDB.animationDuration
     end, function(value)
         CombatCue:SetAnimationDuration(value)
     end, 1)
     animationDurationSlider = CreateDecimalSlider(
-        animationTab,
+        contentFrame,
         "CombatCueAnimationDurationSlider",
         L.animationDuration,
         animationDurationInput,
@@ -387,13 +387,13 @@ function CombatCue:CreateConfigFrame()
         end
     )
 
-    animationScaleInput = self:CreateDecimalInput(animationTab, 54, function()
+    animationScaleInput = self:CreateDecimalInput(contentFrame, 54, function()
         return CombatCueDB.animationScale
     end, function(value)
         CombatCue:SetAnimationScale(value)
     end, 1)
     animationScaleSlider = CreateDecimalSlider(
-        animationTab,
+        contentFrame,
         "CombatCueAnimationScaleSlider",
         L.animationScale,
         animationScaleInput,
@@ -410,31 +410,33 @@ function CombatCue:CreateConfigFrame()
         end
     )
 
-    positionXInput = self:CreateNumberInput(positionTab, 64, function()
+    local positionTitle = CreateSectionTitleBelow(contentFrame, L.tabPosition, animationScaleSlider, -54)
+
+    positionXInput = self:CreateNumberInput(contentFrame, 64, function()
         return CombatCueDB.x
     end, function(value)
         CombatCue:SetPosition("x", value)
     end)
     positionXSlider = CreatePositionSlider(
-        positionTab,
+        contentFrame,
         "CombatCuePositionXSlider",
         L.positionX,
         positionXInput,
         "TOPLEFT",
-        positionTab,
-        "TOPLEFT",
+        positionTitle,
+        "BOTTOMLEFT",
         0,
-        -20,
+        -34,
         "x"
     )
 
-    positionYInput = self:CreateNumberInput(positionTab, 64, function()
+    positionYInput = self:CreateNumberInput(contentFrame, 64, function()
         return CombatCueDB.y
     end, function(value)
         CombatCue:SetPosition("y", value)
     end)
     positionYSlider = CreatePositionSlider(
-        positionTab,
+        contentFrame,
         "CombatCuePositionYSlider",
         L.positionY,
         positionYInput,
@@ -442,51 +444,58 @@ function CombatCue:CreateConfigFrame()
         positionXSlider,
         "BOTTOMLEFT",
         0,
-        -36,
+        -40,
         "y"
     )
 
-    local hint = positionTab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    local hint = contentFrame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     hint:SetPoint("TOPLEFT", positionYSlider, "BOTTOMLEFT", 0, -18)
-    hint:SetWidth(340)
+    hint:SetWidth(320)
     hint:SetJustifyH("LEFT")
     hint:SetText(L.moveHint)
 
-    local previewEnterButton = self:CreateButton(configFrame, L.previewEnter, 112, 24, "BOTTOMLEFT", configFrame, "BOTTOMLEFT", 18, 50)
+    local previewEnterButton = self:CreateButton(contentFrame, L.previewEnter, 112, 24, "TOPLEFT", hint, "BOTTOMLEFT", 0, -18)
     previewEnterButton:SetScript("OnClick", function()
         CombatCue:PreviewEnterCombat(true)
     end)
 
-    local previewLeaveButton = self:CreateButton(configFrame, L.previewLeave, 112, 24, "LEFT", previewEnterButton, "RIGHT", 8, 0)
+    local previewLeaveButton = self:CreateButton(contentFrame, L.previewLeave, 112, 24, "LEFT", previewEnterButton, "RIGHT", 8, 0)
     previewLeaveButton:SetScript("OnClick", function()
         CombatCue:PreviewLeaveCombat(true)
     end)
 
-    local resetButton = self:CreateButton(configFrame, L.reset, 110, 24, "BOTTOMLEFT", configFrame, "BOTTOMLEFT", 18, 18)
+    local resetButton = self:CreateButton(contentFrame, L.reset, 110, 24, "TOPLEFT", previewEnterButton, "BOTTOMLEFT", 0, -8)
     resetButton:SetScript("OnClick", function()
         CombatCue:ResetDB()
         CombatCue:ApplySettings()
         CombatCue:UpdatePreview()
     end)
 
-    local closeButton = self:CreateButton(configFrame, L.close, 82, 24, "BOTTOMRIGHT", configFrame, "BOTTOMRIGHT", -18, 18)
-    closeButton:SetScript("OnClick", function()
-        configFrame:Hide()
+    local movePreviewButton = self:CreateButton(contentFrame, L.movePreview, 140, 24, "LEFT", resetButton, "RIGHT", 8, 0)
+    movePreviewButton:SetScript("OnClick", function()
+        CombatCue:StartPreviewPlacement()
+        CloseSettingsPanel()
     end)
-
-    ShowConfigTab(activeConfigTab)
 
     configFrame:SetScript("OnShow", function()
         CombatCue:ApplySettings()
-        ShowConfigTab(activeConfigTab)
         CombatCue:SetConfigMode(true)
         CombatCue:UpdatePreview()
     end)
 
     configFrame:SetScript("OnHide", function()
+        if CombatCue:IsPreviewPlacementActive() then
+            return
+        end
+
         CombatCue:SetConfigMode(false)
         CombatCue:HideAlert()
     end)
+
+    if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
+        settingsCategory = Settings.RegisterCanvasLayoutCategory(configFrame, L.title)
+        Settings.RegisterAddOnCategory(settingsCategory)
+    end
 end
 
 function CombatCue:IsConfigShown()
@@ -495,6 +504,14 @@ end
 
 function CombatCue:ToggleConfig()
     self:CreateConfigFrame()
+
+    if self:IsPreviewPlacementActive() then
+        self:StopPreviewPlacement()
+    end
+
+    if OpenSettingsCategory() then
+        return
+    end
 
     if configFrame:IsShown() then
         configFrame:Hide()

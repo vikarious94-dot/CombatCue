@@ -15,9 +15,20 @@ local activeDisplayDuration = 0
 local activeAnimationDuration = 0
 local activeAnimationStyle = "fade"
 local activeAnimationScale = 1
+local isPlacementMode = false
 
 CombatCue.alertFrame = alertFrame
 CombatCue.alertText = alertText
+
+local function SetAlertFramePriority(enabled)
+    if enabled then
+        alertFrame:SetFrameStrata("TOOLTIP")
+        alertFrame:SetFrameLevel(1000)
+    else
+        alertFrame:SetFrameStrata("MEDIUM")
+        alertFrame:SetFrameLevel(0)
+    end
+end
 
 function CombatCue:ApplyAlertSettings()
     self:EnsureDB()
@@ -77,17 +88,56 @@ function CombatCue:SaveAlertPosition()
 end
 
 function CombatCue:SetConfigMode(enabled)
-    alertFrame:EnableMouse(enabled)
+    local canMove = enabled or isPlacementMode
 
-    if enabled then
+    alertFrame:EnableMouse(canMove)
+    SetAlertFramePriority(canMove)
+
+    if canMove then
         alertFrame:SetScript("OnDragStart", alertFrame.StartMoving)
         alertFrame:SetScript("OnDragStop", function()
             alertFrame:StopMovingOrSizing()
             self:SaveAlertPosition()
         end)
+        alertFrame:SetScript("OnMouseUp", function(_, button)
+            if button == "RightButton" and isPlacementMode then
+                self:StopPreviewPlacement()
+            end
+        end)
     else
         alertFrame:SetScript("OnDragStart", nil)
         alertFrame:SetScript("OnDragStop", nil)
+        alertFrame:SetScript("OnMouseUp", nil)
+    end
+end
+
+function CombatCue:IsPreviewPlacementActive()
+    return isPlacementMode
+end
+
+function CombatCue:StartPreviewPlacement()
+    self:EnsureDB()
+
+    isPlacementMode = true
+    self:SetConfigMode(true)
+    self:UpdatePreview()
+
+    if DEFAULT_CHAT_FRAME then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99CombatCue|r: " .. self.L.placementStarted)
+    end
+end
+
+function CombatCue:StopPreviewPlacement()
+    if not isPlacementMode then
+        return
+    end
+
+    isPlacementMode = false
+    self:SetConfigMode(false)
+    self:HideAlert()
+
+    if DEFAULT_CHAT_FRAME then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99CombatCue|r: " .. self.L.placementStopped)
     end
 end
 

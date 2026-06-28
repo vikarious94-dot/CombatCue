@@ -24,6 +24,12 @@ local function CommitDecimalInput(input, fallbackValue, onCommit, decimals)
     input:ClearFocus()
 end
 
+local function StyleInput(input)
+    input:SetFontObject(GameFontHighlightSmall)
+    input:SetTextColor(1, 1, 1)
+    input:SetHighlightColor(0.3, 0.45, 0.65, 0.35)
+end
+
 function CombatCue:CreateButton(parent, text, width, height, point, relativeTo, relativePoint, x, y)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     button:SetSize(width, height)
@@ -38,6 +44,7 @@ function CombatCue:CreateNumberInput(parent, width, fallbackGetter, onCommit)
     input:SetSize(width, 24)
     input:SetAutoFocus(false)
     input:SetJustifyH("CENTER")
+    StyleInput(input)
 
     input:SetScript("OnEnterPressed", function()
         CommitNumberInput(input, fallbackGetter(), onCommit)
@@ -60,6 +67,7 @@ function CombatCue:CreateDecimalInput(parent, width, fallbackGetter, onCommit, d
     input:SetSize(width, 24)
     input:SetAutoFocus(false)
     input:SetJustifyH("CENTER")
+    StyleInput(input)
 
     input:SetScript("OnEnterPressed", function()
         CommitDecimalInput(input, fallbackGetter(), onCommit, decimals)
@@ -81,6 +89,7 @@ function CombatCue:CreateTextInput(parent, width, fallbackGetter, onCommit)
     local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
     input:SetSize(width, 24)
     input:SetAutoFocus(false)
+    StyleInput(input)
 
     input:SetScript("OnEnterPressed", function()
         onCommit(input:GetText())
@@ -146,18 +155,21 @@ end
 function CombatCue:SetInputValue(input, value)
     if input and not input:HasFocus() then
         input:SetText(tostring(math.floor(value + 0.5)))
+        input:SetCursorPosition(0)
     end
 end
 
 function CombatCue:SetDecimalInputValue(input, value, decimals)
     if input and not input:HasFocus() then
         input:SetText(string.format("%." .. decimals .. "f", value))
+        input:SetCursorPosition(0)
     end
 end
 
 function CombatCue:SetTextInputValue(input, value)
     if input and not input:HasFocus() then
         input:SetText(value)
+        input:SetCursorPosition(0)
     end
 end
 
