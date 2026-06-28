@@ -1,4 +1,9 @@
 # Changelog
+## Unreleased
+
+### Added
+- Added GitHub Actions packaging for tagged releases.
+
 ## [1.0.1](https://github.com/vikarious94-dot/CombatCue/tree/v1.0.1) - 2026-06-28
 
 ### Changed
